@@ -39,3 +39,4 @@ venv.bak/
 
 bot/migrations
 bot/models.py
+bot/urls.py
