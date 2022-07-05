@@ -2,11 +2,14 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
-
+import dotenv
+# from bot.bot import main as botMain
 
 def main():
     """Run administrative tasks."""
+    dotenv.read_dotenv()
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lifeline_bot.settings')
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -20,3 +23,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # botMain()
