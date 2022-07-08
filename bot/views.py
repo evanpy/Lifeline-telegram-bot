@@ -19,9 +19,9 @@ def vacant_session(request):
     return Response(serialized_session.data)
 
 @api_view(['GET'])
-def detail_session(request):
-    session = Session.objects.filter(vacant=False)
-    serialized_session = Session_Serializer(session, many=True)
+def detail_session(request, pk):
+    session = Session.objects.get(id=pk)
+    serialized_session = Session_Serializer(session, many=False)
     return Response(serialized_session.data)
 
 @api_view(['POST'])
