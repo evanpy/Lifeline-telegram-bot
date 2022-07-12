@@ -14,37 +14,35 @@ async def start_command(update: Update, context: CallbackContext) -> int:
     await update.message.reply_text(
         "Hi! Welcome to lifeline bot.\n"
         "Please hold while we connect you to a counseller.")
-    vacant_session = json.loads(requests.get(BOTURL + 'vacancy').text)
-    if vacant_session:
+    session = json.loads(requests.get(BOTURL + 'vacancy').text)
+    if session:
         clientChatId = update.effective_chat.id
-        counsellorChatId = vacant_session["counsellorChatId"]
-        vacant_session["clientChatId"] = clientChatId
-        vacant_session["vacant"] = False
-        id = str(vacant_session["id"])
+        counsellorChatId = session["counsellorChatId"]
+        session["clientChatId"] = clientChatId
+        session["vacant"] = False
+        id = str(session["id"])
 
-        requests.post(BOTURL + 'update/' + id, json = vacant_session)
-        context.chat_data["id"] = id
-        context.chat_data[clientChatId] = counsellorChatId
-        context.chat_data[counsellorChatId] = clientChatId
+        requests.post(BOTURL + 'update/' + id, json = session)
+        context.bot_data[clientChatId] = {"session_partner": counsellorChatId, "session": session}
+        context.bot_data[counsellorChatId] = {"session_partner": clientChatId, "session": session}
         await update.message.reply_text("You are connected. Say hi!")
-        await context.bot.send_message(chat_id = vacant_session["counsellorChatId"], text = "You are connected. Say hi!")
+        await context.bot.send_message(chat_id = counsellorChatId, text = "You are connected. Say hi!")
+
     return 0
 
 async def end_command(update: Update, context: CallbackContext) -> int:
-    id = context.chat_data["id"]
-    session = json.loads(requests.get(BOTURL + 'detail/' + id).text)
+    session = context.bot_data[update.effective_chat.id]["session"]
     session["ended"] = True
-    requests.post(BOTURL + 'update/' + id, json = session)
+    requests.post(BOTURL + 'update/' + str(session["id"]), json = session)
     await context.bot.send_message(chat_id = update.effective_chat.id, text='Goodbye')
     await context.bot.send_message(chat_id = session["counsellorChatId"], text='Goodbye')
+
     return ConversationHandler.END
 
 async def echo_command(update: Update, context: CallbackContext) -> None:
-    print(update.message.text)
     senderChatId = update.effective_chat.id
-    print(senderChatId)
-    print(context.chat_data)
-    await context.bot.send_message(chat_id = context.chat_data[senderChatId], text = update.message.text)
+    receiverChatId = context.bot_data[senderChatId]["session_partner"]
+    await context.bot.send_message(chat_id = context.bot_data[senderChatId]["session_partner"], text = update.message.text)
 
 def error_handler(update: Update, context: CallbackContext):
     print(f"Update {update} caused an error {context.error}")
