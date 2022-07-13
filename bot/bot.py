@@ -34,7 +34,9 @@ async def end_command(update: Update, context: CallbackContext) -> int:
     session = context.bot_data[update.effective_chat.id]["session"]
     session["ended"] = True
     requests.post(BOTURL + 'update/' + str(session["id"]), json = session)
-    await context.bot.send_message(chat_id = update.effective_chat.id, text='Goodbye')
+    context.bot_data.pop(session['counsellorChatId']);
+    context.bot_data.pop(session['clientChatId']);
+    await context.bot.send_message(chat_id = session["clientChatId"], text='Goodbye')
     await context.bot.send_message(chat_id = session["counsellorChatId"], text='Goodbye')
 
     return ConversationHandler.END
