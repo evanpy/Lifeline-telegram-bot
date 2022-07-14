@@ -8,25 +8,36 @@ import json
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 dotenv.read_dotenv(os.path.join(BASEDIR, os.pardir, '.env'))
 BOTURL = os.environ.get("BASE_BOT_URL")
+APPROVEDCOUNSELLORCHATID = []
 print("Bot is waking up.")
 
-async def start_command(update: Update, context: CallbackContext) -> int:
-    await update.message.reply_text(
-        "Hi! Welcome to lifeline bot.\n"
-        "Please hold while we connect you to a counseller.")
-    session = json.loads(requests.get(BOTURL + 'vacancy').text)
-    if session:
-        clientChatId = update.effective_chat.id
-        counsellorChatId = session["counsellorChatId"]
-        session["clientChatId"] = clientChatId
-        session["vacant"] = False
-        id = str(session["id"])
+def create_session(data) -> None:
+    requests.post(BOTURL + 'create/', json = data)
 
-        requests.post(BOTURL + 'update/' + id, json = session)
-        context.bot_data[clientChatId] = {"session_partner": counsellorChatId, "session": session}
-        context.bot_data[counsellorChatId] = {"session_partner": clientChatId, "session": session}
-        await update.message.reply_text("You are connected. Say hi!")
-        await context.bot.send_message(chat_id = counsellorChatId, text = "You are connected. Say hi!")
+async def join_session(session, thisChatId) -> None:
+    if session["counsellorChatId"] == None:
+        session["counsellorChatId"] = thisChatId
+    else:
+        session["clientChatId"] = thisChatId
+    session["vacant"] = False
+    requests.post(BOTURL + 'update/' + str(session["id"]), json = session)
+    context.bot_data[clientChatId] = {"session_partner": counsellorChatId, "session": session}
+    context.bot_data[counsellorChatId] = {"session_partner": clientChatId, "session": session}
+    await context.bot.send_message(chat_id = clientChatId, text = "You are connected. Say hi!")
+    await context.bot.send_message(chat_id = counsellorChatId, text = "You are connected. Say hi!")
+
+async def start_command(update: Update, context: CallbackContext) -> int:
+    thisChatId = update.effective_chat.id
+    if thisChatId in APPROVEDCOUNSELLORCHATID:
+        await update.message.reply_text("Please hold while we connect you to a client.")
+        session = json.loads(requests.get(BOTURL + 'vacancy/client').text)
+        await join_session(session, thisChatId) if session else create_session({"counsellorChatId": thisChatId})
+    else:
+        await update.message.reply_text(
+            "Hi! Welcome to lifeline bot.\n"
+            "Please hold while we connect you to a counseller.")
+        session = json.loads(requests.get(BOTURL + 'vacancy/counsellor').text)
+        await join_session(session, thisChatId) if session else create_session({"clientChatId": thisChatId})
 
     return 0
 

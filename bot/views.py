@@ -11,8 +11,16 @@ def all_sessions(request):
     return Response(serialized_sessions.data)
 
 @api_view(['GET'])
-def vacant_session(request):
-    session = Session.objects.filter(vacant=True).order_by("-createdAt")
+def find_client_session(request):
+    session = Session.objects.filter(vacant=True, clientChatId=None).order_by("-createdAt")
+    if (len(session) == 0):
+        return Response(session)
+    serialized_session = Session_Serializer(session[0], many=False)
+    return Response(serialized_session.data)
+
+@api_view(['GET'])
+def find_counsellor_session(request):
+    session = Session.objects.filter(vacant=True, counsellorChatId=None).order_by("-createdAt")
     if (len(session) == 0):
         return Response(session)
     serialized_session = Session_Serializer(session[0], many=False)
